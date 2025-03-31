@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
+using System.Text;
 using dojo_bindings;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -111,6 +112,29 @@ namespace Dojo.Starknet
         // This convert the enum to a uint64 and uses the BigInteger constructor
         public FieldElement(Enum @enum) : this(Convert.ToUInt64(@enum))
         {
+        }
+
+        public FieldElement(string value, bool isText = true)
+        {
+            const int MAX_SHORT_STRING_LENGTH = 31;
+            if (string.IsNullOrEmpty(value))
+                inner = new FieldElement("0").inner;
+
+            if (value.Length > MAX_SHORT_STRING_LENGTH)
+                throw new ArgumentException(
+                    $"String is too long. Maximum length is {MAX_SHORT_STRING_LENGTH} characters");
+
+
+            if (value.Any(c => c > 127))
+                throw new ArgumentException("String contains non-ASCII characters");
+
+
+            var bytes = Encoding.ASCII.GetBytes(value);
+
+
+            var hexString = "0x" + BitConverter.ToString(bytes).Replace("-", "");
+
+            inner = new FieldElement(hexString).inner;
         }
 
         public string Hex()

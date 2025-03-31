@@ -43,12 +43,18 @@ namespace Dojo
         }
 
         // Fetch all entities from the dojo world and spawn them.
-        public async Task<int> SynchronizeEntities()
+        public async Task<int> SynchronizeEntities(Query query = null)
         {
+            if (query == null)
+            {
+                query = worldManager.dojoConfig.query;
+            }
+
+            // Fetch entities from the world
 #if UNITY_WEBGL && !UNITY_EDITOR
-            var entities = await worldManager.wasmClient.Entities(worldManager.dojoConfig.query);
+            var entities = await worldManager.wasmClient.Entities(query);
 #else
-            var entities = await Task.Run(() => worldManager.toriiClient.Entities(worldManager.dojoConfig.query));
+            var entities = await Task.Run(() => worldManager.toriiClient.Entities(query));
 #endif
 
             var entityGameObjects = new List<GameObject>();
@@ -81,9 +87,18 @@ namespace Dojo
                     continue;
                 }
 
-                // Add the model component to the entity
-                var component = (ModelInstance)entityGameObject.AddComponent(model.GetType());
-                component.Initialize(entityModel);
+                ModelInstance component = entityGameObject.GetComponent(model.GetType()) as ModelInstance;
+                
+                if (component == null)
+                {
+                    // we dont need to initialize the component
+                    // because it'll get updated
+                    // Add the model component to the entity
+                    component = (ModelInstance)entityGameObject.AddComponent(model.GetType());
+                    component.Initialize(entityModel);
+                }
+                component.OnUpdate(entityModel);
+                OnModelUpdated?.Invoke(component);
             }
 
             OnEntitySpawned?.Invoke(entityGameObject);
@@ -125,7 +140,7 @@ namespace Dojo
 
                 // update component with new model data
                 ((ModelInstance)component).OnUpdate(entityModel);
-                OnModelUpdated?.Invoke(model);
+                OnModelUpdated?.Invoke((ModelInstance)component);
             }
         }
 

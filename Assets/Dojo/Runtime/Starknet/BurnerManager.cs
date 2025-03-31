@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -32,11 +33,12 @@ namespace Dojo.Starknet
             this.provider = provider;
             this.masterAccount = masterAccount;
             UseStorage = useStorage;
+        }
 
-            if (UseStorage)
-            {
-                TryLoadFromStorage();
-            }
+        public async Task LoadBurnersFromStorage()
+        {
+            if (!UseStorage) return;
+            await TryLoadFromStorage();
         }
 
         public async Task<Account> DeployBurner(SigningKey signingKey = null)
@@ -61,22 +63,32 @@ namespace Dojo.Starknet
 
         // Load the burners from disk.
         // This will be called automatically if useStorage is set to true.
-        public void TryLoadFromStorage()
+        public async Task TryLoadFromStorage()
         {
 
             // Load all burners
             var burnersData = PlayerPrefs.GetString($"burnermanagers.{masterAccount.Address.Hex()}.burners");
+            Debug.Log($"Burners data: {burnersData}");
             if (!string.IsNullOrEmpty(burnersData))
             {
+                Debug.Log($"Loading burners");
+                
                 var burners = JsonConvert.DeserializeObject<List<Dictionary<string, string>>>(burnersData);
                 foreach (var burnerData in burners)
                 {
                     var address = new FieldElement(burnerData["address"]);
                     var privateKey = burnerData["privateKey"];
+                    
+                    Debug.Log("Burner pub key:" + address.Hex());
+                    Debug.Log("Burner private key:" + privateKey);
+                    
                     Burners.Add(new Account(provider, new SigningKey(privateKey), address));
+                    await DojoCoroutines.CoroutineAsync(() => { }, 1f);
                 }
+                Debug.Log($"Loaded {Burners.Count} burners");
             }
 
+            
             // Load the current burner
             var currentBurnerIndex = PlayerPrefs.GetInt($"burnermanagers.{masterAccount.Address.Hex()}.current", -1);
             if (currentBurnerIndex >= 0 && currentBurnerIndex < Burners.Count)
