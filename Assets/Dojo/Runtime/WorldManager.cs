@@ -25,10 +25,10 @@ namespace Dojo
             FieldElement world = worldAddress != null ? new FieldElement(worldAddress) : dojoConfig.worldAddress;
             Debug.Log($"[WorldManager] Initializing with rpcUrl: {rpc} and toriiUrl: {torii} and worldAddress: {world.Hex()}");
             
-28|#if UNITY_WEBGL && !UNITY_EDITOR
+#if UNITY_WEBGL && !UNITY_EDITOR
             toriiClient = new ToriiWasmClient(torii, dojoConfig.relayWebrtcUrl, world);
             await toriiClient.CreateClient();
-36|#else
+#else
             toriiClient = new ToriiClient(torii, dojoConfig.relayUrl, world);
 #endif
 
