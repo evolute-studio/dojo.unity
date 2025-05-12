@@ -15,10 +15,6 @@ namespace Dojo
     public class SynchronizationMaster : MonoBehaviour
     {
         public WorldManager worldManager;
-
-        // Maximum number of entities to synchronize
-        public uint limit = 100;
-
         // Handle entities that get synchronized
         private ModelInstance[] _models;
         // Returns all of the model definitions
@@ -51,20 +47,22 @@ namespace Dojo
             }
 
             // Fetch entities from the world
-#if UNITY_WEBGL && !UNITY_EDITOR
-            var entities = await worldManager.wasmClient.Entities(query);
-#else
+50|#if UNITY_WEBGL && !UNITY_EDITOR
+            var entities = await worldManager.toriiClient.Entities(query);
+            var tokens = await worldManager.toriiClient.Tokens();
+            var tokenBalances = await worldManager.toriiClient.TokenBalances();
+58|#else
             var entities = await Task.Run(() => worldManager.toriiClient.Entities(query));
 #endif
 
             var entityGameObjects = new List<GameObject>();
-            foreach (var entity in entities)
+            foreach (var entity in entities.items)
             {
                 entityGameObjects.Add(SpawnEntity(entity.HashedKeys, entity.Models.Values.ToArray()));
             }
 
             OnSynchronized?.Invoke(entityGameObjects);
-            return entities.Count;
+            return entities.items.Length;
         }
 
         // Spawn an Entity game object from a dojo.Entity
